@@ -19,6 +19,12 @@
 
 #include <iostream>
 
+#define likely(x) __builtin_expect(!!(x), 1)
+#define unlikely(x) __builtin_expect(!!(x), 0)
+
+struct addrinfo *Connection::_addr = nullptr;
+std::mutex Connection::_getaddrinfo_mutex;
+
 void
 Connection::close()
 {
@@ -44,7 +50,12 @@ Connection::socket(const char *host, const char *port)
   hints.ai_socktype = SOCK_STREAM;
 
   // look up the address
-  getaddrinfo(host, port, &hints, &_addr);
+  if (unlikely(_addr == nullptr)) {
+    const std::lock_guard<std::mutex> lock(_getaddrinfo_mutex);
+    if (_addr == nullptr) {
+      getaddrinfo(host, port, &hints, &_addr);
+    }
+  }
 
   // create a socket
   _fd = ::socket(_addr->ai_family, _addr->ai_socktype, _addr->ai_protocol);
@@ -53,6 +64,14 @@ Connection::socket(const char *host, const char *port)
     perror("error calling socket");
   }
 
+  constexpr int const ONE = 1;
+  if (setsockopt(_fd, SOL_SOCKET, SO_REUSEADDR, &ONE, sizeof(ONE)) < 0) {
+    perror("setsockopt(SO_REUSEADDR) failed");
+  }
+
+  // set to non blocking
+  assert(fcntl(_fd, F_SETFL, O_NONBLOCK) == 0);
+
   return _fd;
 }
 
@@ -60,9 +79,6 @@ int
 Connection::connect()
 {
   _time = time(nullptr);
-
-  // set to non blocking
-  assert(fcntl(_fd, F_SETFL, O_NONBLOCK) == 0);
 
   // make the connection
   int rval = ::connect(_fd, _addr->ai_addr, _addr->ai_addrlen);

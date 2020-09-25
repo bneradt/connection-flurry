@@ -30,7 +30,7 @@ int
 main(int argc, char **argv)
 {
   // getopt
-  int connections = 1;
+  int concurrent_connections = 1;
   std::string port = "80";
   std::string host;
   int opt;
@@ -39,7 +39,7 @@ main(int argc, char **argv)
   while ((opt = getopt(argc, argv, "hp:c:t:v")) != -1) {
     switch (opt) {
     case 'c':
-      connections = atoi(optarg);
+      concurrent_connections = atoi(optarg);
       break;
     case 't':
       cf::totalConnections = atoi(optarg);
@@ -65,21 +65,21 @@ main(int argc, char **argv)
   }
 
   // create a pool of connections
-  ConnectionPool x(connections, host, port);
+  ConnectionPool pool(concurrent_connections, host, port);
   auto start = std::chrono::high_resolution_clock::now();
-  x.connect(); // establish connections to the server
+  pool.connect(); // establish connections to the server
 
   // display some information
   std::cout << "One period equals 1,000 established connections..." << std::endl;
 
   // loop over until we have established enough connections
   while (cf::establishedConnections < cf::totalConnections) {
-    x.recycle();
-    x.state();
+    pool.recycle();
+    pool.state();
   }
-  sleep(100);
+  // sleep(100);
 
-  x.close(); // close all the connections
+  pool.close(); // close all the connections
   auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(
                       std::chrono::high_resolution_clock::now() - start)
                       .count();
@@ -92,7 +92,7 @@ main(int argc, char **argv)
             << "Total number of attempted connections:   " << cf::attemptedConnections << std::endl
             << "Total number of failed connections:      " << cf::failedConnections << std::endl
             << "Established connections per second:      "
-            << (double)cf::establishedConnections / double((double)duration * (double)1000)
+            << ((double)cf::establishedConnections / double((double)duration) * (double)1000)
             << std::endl;
   return 0;
 }

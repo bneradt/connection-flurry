@@ -40,12 +40,11 @@ public:
   void close();
 
 private:
-  const std::string _host;
-  const std::string _port;
-  unsigned int _size = 0;
+  const std::string _server_name;
+  const std::string _server_port;
   int _epollFd = 0;
   std::vector<Connection> _connections;
-  std::vector<addrinfo *> _bind_addresses;
+  std::vector<addrinfo *> _local_addresses;
   epoll_event *_events = nullptr;
   bool _usePoll = false;
   struct pollfd *_pollFd = nullptr;

@@ -13,6 +13,8 @@
 #include <sys/types.h>
 #include <time.h>
 
+#include <mutex>
+
 
 /** Class to keep track of the information for each socket connection
  */
@@ -32,6 +34,10 @@ public:
   int _fd = -1;
   int _counter = 0;
   time_t _time = 0;
-  struct addrinfo *_addr = nullptr;
+
+  static struct addrinfo *_addr;
+
+private:
+  static std::mutex _getaddrinfo_mutex;
 };
 
