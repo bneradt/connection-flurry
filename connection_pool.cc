@@ -44,9 +44,6 @@ ConnectionPool::ConnectionPool(
   hints.ai_socktype = SOCK_STREAM;
 
   struct addrinfo *addr = nullptr;
-  // look up the address
-  getaddrinfo("127.0.0.1", NULL, &hints, &addr);
-  _local_addresses.push_back(addr);
   getaddrinfo("67.195.51.223", NULL, &hints, &addr);
   _local_addresses.push_back(addr);
 }
